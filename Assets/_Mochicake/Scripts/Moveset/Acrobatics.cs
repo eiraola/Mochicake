@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class Acrobatics : MonoBehaviour
 {
@@ -9,6 +10,8 @@ public class Acrobatics : MonoBehaviour
     private float _spinDuration = 0.5f;
     [SerializeField]
     private Transform _targetTransform;
+    [SerializeField]
+    private UnityEvent _onAcroDone = new UnityEvent();
     private bool _canDoAcrobatics = false;
     private Coroutine _spinCoroutine;
 
@@ -32,6 +35,15 @@ public class Acrobatics : MonoBehaviour
         }
         _canDoAcrobatics = false;
         PlayIdleAnimation();
+    }
+
+    public void PlayAccelerationAnim()
+    {
+        if (!_animator)
+        {
+            return;
+        }
+        _animator.SetTrigger(Constants.ACCELERATE_ANIM);
     }
 
     public void PlayTrickOne()
@@ -69,7 +81,7 @@ public class Acrobatics : MonoBehaviour
         {
             return;
         }
-
+        _onAcroDone?.Invoke();
         _animator.SetTrigger(animName);
         LaunchSpinCoroutine();
     }

@@ -5,6 +5,8 @@ using UnityEngine.InputSystem;
 public class InputController : MonoBehaviour
 {
     [SerializeField]
+    private float _minDelta = 50.0f;
+    [SerializeField]
     private InputAction _mouseDownInputAction;
     [SerializeField]
     private InputAction _mouseUpInputAction;
@@ -43,7 +45,7 @@ public class InputController : MonoBehaviour
         Vector2 mouseUpPosition = Mouse.current.position.ReadValue();
         Vector2 delta = mouseUpPosition - _mouseInitPosition;
 
-        if (delta.magnitude < 50f) 
+        if (delta.magnitude < _minDelta) 
             return;
 
         if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y))

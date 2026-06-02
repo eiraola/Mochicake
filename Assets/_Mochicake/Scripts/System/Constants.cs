@@ -8,6 +8,7 @@ public static class Constants
     //Animations
 
     public const string IDLE_ANIM = "Idle";
+    public const string ACCELERATE_ANIM = "Accelerate";
     public const string TRICK_ONE_ANIM = "One";
     public const string TRICK_TWO_ANIM = "Two";
     public const string TRICK_THREE_ANIM = "Three";

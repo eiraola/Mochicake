@@ -1,12 +1,14 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 public class Locomotion : MonoBehaviour
 {
-
     [SerializeField]
-    private float _linearVelocity = 0f;
+    private float _maxVelocity = 10f;
+    [SerializeField]
+    private float _impulseStrength = 10f;
     [SerializeField]
     private LayerMask _ignoredLayers;
     [SerializeField]
@@ -21,22 +23,29 @@ public class Locomotion : MonoBehaviour
     [SerializeField]
     private float _frictionFactor = 1.0f;
     [SerializeField]
-    private InputAction _Accelerate;
-    private Vector3 _lastFrontHitPoint;
-    private Vector3 _lastBackHitPoint;
+    private UnityEvent _onAccelerate = new UnityEvent();
+    private float _linearVelocity = 0f;
+    private bool _isGrounded = true;
+    private RaycastHit _backHit;
+    private RaycastHit _frontHit;
 
-    private void Start()
+    /// <summary>
+    /// Increases the player speed clamping it to a max value
+    /// </summary>
+    public void Accelerate()
     {
-        _Accelerate.Enable();
-        _Accelerate.performed += Accelerate;
+        if (!_isGrounded)
+        {
+            return;
+        }
+
+        _linearVelocity += Mathf.Sign(_linearVelocity) * _impulseStrength;
+        _linearVelocity = Mathf.Clamp(_linearVelocity, - _maxVelocity, _maxVelocity);
+        _onAccelerate?.Invoke();
+
     }
 
-    private void Accelerate(InputAction.CallbackContext context)
-    {
-        _linearVelocity += Mathf.Sign(_linearVelocity) * 2;
-    }
-
-    void Update()
+    private void Update()
     {
         Move();
     }
@@ -44,7 +53,7 @@ public class Locomotion : MonoBehaviour
     private void Move()
     {
         RotateToGround();
-        bool isGrounded = StickToGround();
+        _isGrounded = StickToGround();
         _linearVelocity -=  (Vector3.Dot(transform.forward, Vector3.up) * _speedLoss * Time.deltaTime);
         _linearVelocity = Mathf.MoveTowards(
             _linearVelocity,
@@ -61,7 +70,7 @@ public class Locomotion : MonoBehaviour
         if (Physics.Raycast(transform.position + transform.up * 0.2f, -transform.up, out hit, 1f, ~_ignoredLayers))
         {
             transform.position = hit.point;
-            if (hit.transform.CompareTag("Air"))
+            if (hit.transform.CompareTag(Constants.AIR_TAG))
             {
                 return false;
             }
@@ -73,27 +82,19 @@ public class Locomotion : MonoBehaviour
 
     private void RotateToGround()
     {
-        RaycastHit backHit;
-        RaycastHit frontHit;
-        if (Physics.Raycast(transform.TransformPoint(_frontRaycastPosition) + transform.up * 0.2f, -transform.up, out frontHit, 1f, ~_ignoredLayers)) {
-            _lastFrontHitPoint = frontHit.normal;
-        }
-
-        if (Physics.Raycast(transform.TransformPoint(_backRaycastPosition) + transform.up * 0.2f, -transform.up, out backHit, 1f, ~_ignoredLayers))
-        {
-            _lastFrontHitPoint = backHit.normal;
-        }
-         if(_lastFrontHitPoint == null || _lastBackHitPoint == null)
+        if(!Physics.Raycast(transform.TransformPoint(_frontRaycastPosition) + transform.up * 0.2f, -transform.up, out _frontHit, 1f, ~_ignoredLayers))
         {
             return;
         }
 
-        Vector3 averageNormal = (_lastFrontHitPoint + _lastBackHitPoint).normalized;
+        if(!Physics.Raycast(transform.TransformPoint(_backRaycastPosition) + transform.up * 0.2f, -transform.up, out _backHit, 1f, ~_ignoredLayers))
+        {
+            return;
+        }
+        
+        Vector3 averageNormal = (_frontHit.normal + _backHit.normal).normalized;
         Vector3 forward = Vector3.ProjectOnPlane(transform.forward, averageNormal);
         transform.rotation = Quaternion.LookRotation(forward, averageNormal);
-        //transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, _rotationSpeed * Time.deltaTime);
-
-      
     }
 
     private void OnDrawGizmosSelected()
